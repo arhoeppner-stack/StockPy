@@ -134,7 +134,6 @@ account_summary = (
     .reset_index()
     .rename(columns={"Market_Value": "Market Value", "Total_Gain": "Total Gain"})
 )
-
 st.dataframe(account_summary, use_container_width=True)
 
 st.subheader("Holdings")
