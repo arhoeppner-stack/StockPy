@@ -2,11 +2,16 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 import yfinance as yf
+from io import BytesIO
 
 st.set_page_config(page_title="Portfolio Dashboard", layout="wide")
 
 st.title("Portfolio Dashboard")
-st.caption("Upload a portfolio CSV to view current values, allocation, and performance.")
+st.caption("Upload your portfolio CSV and track allocation, growth, and plan impact.")
+
+st.sidebar.title("Dashboard Controls")
+show_by_account = st.sidebar.checkbox("Show account tabs", value=True)
+show_tax_notes = st.sidebar.checkbox("Show tax notes", value=True)
 
 uploaded = st.file_uploader("Upload portfolio CSV", type=["csv"])
 
@@ -73,6 +78,10 @@ def clean_num(series):
         .str.replace('"', "", regex=False),
         errors="coerce",
     )
+
+
+def make_bytes(df):
+    return df.to_csv(index=False).encode("utf-8")
 
 
 if uploaded is None:
@@ -176,18 +185,27 @@ with right:
     )
     st.plotly_chart(bar, use_container_width=True)
 
-st.subheader("By Account")
-for portfolio_name, group in df.groupby("Portfolio"):
-    with st.expander(f"{portfolio_name} ({len(group)} holdings)", expanded=False):
-        st.dataframe(
-            group.sort_values("Market Value", ascending=False)[show_cols],
-            use_container_width=True,
-        )
+if show_by_account:
+    st.subheader("By Account")
+    for portfolio_name, group in df.groupby("Portfolio"):
+        with st.expander(f"{portfolio_name} ({len(group)} holdings)", expanded=False):
+            st.dataframe(
+                group.sort_values("Market Value", ascending=False)[show_cols],
+                use_container_width=True,
+            )
 
-csv = df.to_csv(index=False).encode("utf-8")
+if show_tax_notes:
+    st.subheader("Tax-Aware Notes")
+    st.write(
+        "- Favor long-term holding in taxable accounts.\n"
+        "- Avoid unnecessary short-term gains.\n"
+        "- Use loss positions before realizing more gains.\n"
+        "- Keep the taxable account more tax-efficient than the Roth."
+    )
+
 st.download_button(
     "Download enriched CSV",
-    data=csv,
+    data=make_bytes(df),
     file_name="portfolio_dashboard_enriched.csv",
     mime="text/csv",
 )
